@@ -8,10 +8,14 @@ import {
   KanbanSquare, 
   ShieldCheck,
   Compass,
-  Send
+  Send,
+  Globe2,
+  Sparkles,
+  Target,
+  Settings
 } from 'lucide-react';
 
-const navItems = [
+const coreNavItems = [
   {
     name: 'Dashboard',
     href: '/',
@@ -44,13 +48,46 @@ const navItems = [
   },
 ];
 
+const openMarketingNavItems = [
+  {
+    name: 'Lead Intelligence',
+    href: '/open-marketing',
+    icon: Globe2,
+    badge: 'Engine',
+  },
+  {
+    name: 'Business Discovery',
+    href: '/open-marketing/discovery',
+    icon: Sparkles,
+    badge: 'Scraper',
+  },
+  {
+    name: 'Discovered Leads',
+    href: '/open-marketing/leads',
+    icon: Users,
+    badge: null,
+  },
+  {
+    name: 'Qualified Leads',
+    href: '/open-marketing/qualified',
+    icon: Target,
+    badge: 'Sales',
+  },
+  {
+    name: 'Settings & Sync',
+    href: '/open-marketing/settings',
+    icon: Settings,
+    badge: null,
+  },
+];
+
 export default function Sidebar() {
   const pathname = usePathname();
 
   return (
     <aside className="w-64 bg-crm-navy text-white border-r border-crm-sky/20 flex flex-col shrink-0 min-h-screen transition-colors">
       {/* Brand Header */}
-      <div className="h-16 flex items-center px-6 border-b border-crm-sky/15 gap-3">
+      <div className="h-16 flex items-center px-6 border-b border-crm-sky/15 gap-3 shrink-0">
         <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-crm-blue via-crm-periwinkle to-crm-indigo flex items-center justify-center shadow-lg shadow-crm-blue/30 text-white font-black text-lg">
           LP
         </div>
@@ -66,43 +103,85 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1.5">
-        <div className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-crm-sky/70">
-          Core Workspaces
-        </div>
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                isActive
-                  ? 'bg-crm-blue text-white border border-crm-periwinkle/40 shadow-sm'
-                  : 'text-crm-sky/85 hover:text-white hover:bg-crm-navySurface'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Icon className={`w-4 h-4 ${isActive ? 'text-crm-sky' : 'text-crm-periwinkle/80'}`} />
-                <span>{item.name}</span>
-              </div>
-              {item.badge && (
-                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${
+      <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+        {/* Core Marketing Workspaces */}
+        <div className="space-y-1.5">
+          <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-crm-sky/70">
+            Core Workspaces
+          </div>
+          {coreNavItems.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-crm-navy/60 text-crm-sky border-crm-sky/30'
-                    : 'bg-crm-navySurface text-crm-sky border-crm-sky/20'
-                }`}>
-                  {item.badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+                    ? 'bg-crm-blue text-white border border-crm-periwinkle/40 shadow-sm'
+                    : 'text-crm-sky/85 hover:text-white hover:bg-crm-navySurface'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-crm-sky' : 'text-crm-periwinkle/80'}`} />
+                  <span>{item.name}</span>
+                </div>
+                {item.badge && (
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${
+                    isActive
+                      ? 'bg-crm-navy/60 text-crm-sky border-crm-sky/30'
+                      : 'bg-crm-navySurface text-crm-sky border-crm-sky/20'
+                  }`}>
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Open Marketing Module */}
+        <div className="space-y-1.5 pt-3 border-t border-crm-sky/15">
+          <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-crm-sky/70 flex items-center justify-between">
+            <span>Open Marketing</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded bg-crm-periwinkle/20 text-crm-periwinkle border border-crm-periwinkle/30 font-mono">
+              Module
+            </span>
+          </div>
+          {openMarketingNavItems.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  isActive
+                    ? 'bg-crm-blue text-white border border-crm-periwinkle/40 shadow-sm'
+                    : 'text-crm-sky/85 hover:text-white hover:bg-crm-navySurface'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-crm-sky' : 'text-crm-periwinkle/80'}`} />
+                  <span>{item.name}</span>
+                </div>
+                {item.badge && (
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${
+                    isActive
+                      ? 'bg-crm-navy/60 text-crm-sky border-crm-sky/30'
+                      : 'bg-crm-navySurface text-crm-sky border-crm-sky/20'
+                  }`}>
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
       {/* Target Market Info */}
-      <div className="p-4 m-3 rounded-xl bg-crm-navyDeep/70 border border-crm-sky/20 text-xs">
+      <div className="p-4 m-3 rounded-xl bg-crm-navyDeep/70 border border-crm-sky/20 text-xs shrink-0">
         <div className="flex items-center gap-2 text-white font-semibold mb-1">
           <ShieldCheck className="w-3.5 h-3.5 text-crm-periwinkle" />
           <span>Local Engine</span>
@@ -115,8 +194,8 @@ export default function Sidebar() {
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-crm-sky/15 text-[11px] text-crm-sky/80 flex items-center justify-between">
-        <span>PostgreSQL &bull; Prisma</span>
+      <div className="p-4 border-t border-crm-sky/15 text-[11px] text-crm-sky/80 flex items-center justify-between shrink-0">
+        <span>PostgreSQL &bull; Express</span>
         <span className="inline-block w-2 h-2 rounded-full bg-crm-periwinkle animate-pulse" title="System Online" />
       </div>
     </aside>

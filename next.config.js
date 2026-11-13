@@ -1,5 +1,7 @@
 const path = require('path');
 
+const OPEN_MARKETING_BACKEND = process.env.OPEN_MARKETING_BACKEND_URL || 'http://127.0.0.1:3001';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -9,6 +11,14 @@ const nextConfig = {
   },
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'prisma'],
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/api/open-marketing/proxy/:path*',
+        destination: `${OPEN_MARKETING_BACKEND}/api/:path*`,
+      },
+    ];
   },
 };
 

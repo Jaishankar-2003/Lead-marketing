@@ -5,6 +5,8 @@ export interface SearchInput {
   country: string;
   maxSubcategories?: number;
   skipWebsiteAnalysis?: boolean;
+  browserMode?: 'headless' | 'headed';
+  headless?: boolean;
 }
 
 export type WebsiteStatus =

@@ -4,6 +4,18 @@ import { discoverAndQualifyLeads } from './websiteDiscovery';
 
 const args = minimist(process.argv.slice(2));
 
+// Detect browser execution mode from CLI flags
+let parsedMode: 'headless' | 'headed' | undefined = undefined;
+if (args['headed'] === true || args['headless'] === false || args['browser-mode'] === 'headed' || args['browserMode'] === 'headed') {
+  parsedMode = 'headed';
+  process.env.HEADLESS = 'false';
+  process.env.PW_HEADLESS = 'false';
+} else if (args['headless'] === true || args['headed'] === false || args['browser-mode'] === 'headless' || args['browserMode'] === 'headless') {
+  parsedMode = 'headless';
+  process.env.HEADLESS = 'true';
+  process.env.PW_HEADLESS = 'true';
+}
+
 const input: SearchInput = {
   category: (args['category'] as string) || (args['c'] as string) || 'Retail shops',
   area:     (args['area'] as string)     || (args['a'] as string) || 'Anna Nagar',
@@ -11,6 +23,8 @@ const input: SearchInput = {
   country:  (args['country'] as string)  || (args['n'] as string) || 'India',
   maxSubcategories: args['subcategories'] ? parseInt(args['subcategories'], 10) : 8,
   skipWebsiteAnalysis: Boolean(args['quick'] || args['skip-analysis']),
+  browserMode: parsedMode,
+  headless: parsedMode ? parsedMode === 'headless' : undefined,
 };
 
 discoverAndQualifyLeads(input)

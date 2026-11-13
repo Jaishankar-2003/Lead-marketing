@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node scripts/dev-unified.js",
+    "dev:marketing-only": "next dev -p 3000",
+    "dev:open-marketing-backend": "npm run start --prefix \"open marketing /dashboard/backend\"",
+    "build": "npm run build --prefix \"open marketing /dashboard/backend\" && next build",
+    "build:marketing-only": "next build",
+    "start": "node scripts/start-unified.js",
+    "start:marketing-only": "next start -p 3000",
     "test:playwright": "playwright test",
     "test:e2e": "sucrase-node scripts/test-phase6-e2e.ts",
     "db:start": "bash scripts/db-start.sh",
@@ -36,6 +40,7 @@
     "papaparse": "^5.7.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "recharts": "^2.12.7",
     "tailwind-merge": "^3.7.0"
   }
 }

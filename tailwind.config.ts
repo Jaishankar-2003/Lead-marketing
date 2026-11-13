@@ -10,6 +10,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        background: "var(--color-background)",
+        card: "var(--color-surface)",
+        "card-hover": "var(--color-surface-muted)",
+        border: "var(--color-border)",
+        "border-light": "rgba(177, 214, 240, 0.3)",
         crm: {
           navy: "#002050",
           navyDeep: "#001433",

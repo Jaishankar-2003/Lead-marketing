@@ -1,7 +1,7 @@
 export const CONFIG = {
   // Browser settings
-  headless: false,   // Headed browser helps bypass search engine bot blocks
-  slowMo: 40,        // Human-like action delay
+  headless: true,    // Run Playwright headlessly in background without visible windows
+  slowMo: 0,         // Optimized delay for background headless automation
 
   // Scraping depth
   pagesPerSource: 2, // Balanced for speed and quality

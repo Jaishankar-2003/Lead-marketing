@@ -343,9 +343,24 @@ export default function PipelinePage() {
                             </div>
                           </div>
 
-                          <p className="text-[11px] text-crm-indigo dark:text-crm-sky/75 truncate pl-5">
-                            {lead.category || 'General Business'} &bull; {lead.city || 'Madurai'}
-                          </p>
+                          <div className="text-[11px] text-crm-indigo dark:text-crm-sky/75 truncate pl-5 flex items-center gap-1.5 flex-wrap">
+                            {lead.source === 'open_marketing' ? (
+                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shrink-0">
+                                Open Marketing
+                              </span>
+                            ) : lead.source === 'google_maps' ? (
+                              <span className="text-[9px] font-medium px-1.5 py-0.2 rounded bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shrink-0">
+                                Google Maps
+                              </span>
+                            ) : lead.source === 'csv_import' ? (
+                              <span className="text-[9px] font-medium px-1.5 py-0.2 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
+                                CSV
+                              </span>
+                            ) : null}
+                            <span className="truncate">
+                              {lead.category || 'General Business'} &bull; {lead.city || 'Madurai'}
+                            </span>
+                          </div>
 
                           <div className="flex items-center gap-2 text-[10px] text-crm-indigo dark:text-crm-sky/80 pl-5">
                             {lead.phone && (

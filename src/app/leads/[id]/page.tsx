@@ -910,13 +910,26 @@ export default function LeadDetailsPage({ params }: { params: { id: string } }) 
                   <Building2 className="w-4 h-4 text-crm-blue dark:text-crm-periwinkle" />
                   Business Profile
                 </h3>
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="text-xs font-semibold text-crm-blue dark:text-crm-periwinkle hover:underline"
-                >
-                  {isEditing ? 'Cancel Edit' : 'Edit Info'}
-                </button>
+                <div className="flex items-center gap-3">
+                  {isEditing && (
+                    <button
+                      type="button"
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-crm-blue hover:bg-crm-navy text-white text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      {saving ? 'Saving...' : 'Save'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="text-xs font-semibold text-crm-blue dark:text-crm-periwinkle hover:underline"
+                  >
+                    {isEditing ? 'Cancel Edit' : 'Edit Info'}
+                  </button>
+                </div>
               </div>
 
               {isEditing ? (
