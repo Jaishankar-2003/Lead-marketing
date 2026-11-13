@@ -1,0 +1,22 @@
+{
+  "name": "business-website-discovery",
+  "version": "1.0.0",
+  "description": "Free automated business website discovery tool using Playwright",
+  "main": "dist/website-discovery/run.js",
+  "scripts": {
+    "discover": "ts-node src/website-discovery/run.ts",
+    "build": "tsc",
+    "postinstall": "playwright install chromium"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.45.0",
+    "playwright": "^1.45.0",
+    "minimist": "^1.2.8"
+  },
+  "devDependencies": {
+    "@types/minimist": "^1.2.5",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "ts-node": "^10.9.2"
+  }
+}

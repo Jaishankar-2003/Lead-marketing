@@ -1,0 +1,13 @@
+{
+  "name": "lead-intelligence-dashboard",
+  "version": "1.0.0",
+  "description": "Local Business Lead Intelligence Dashboard",
+  "private": true,
+  "scripts": {
+    "start": "node backend/dist/index.js",
+    "build": "npm run build --prefix backend && npm run build --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend"
+  }
+}
+

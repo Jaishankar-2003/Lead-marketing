@@ -1,0 +1,258 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum CrmStatus {
+  NEW
+  RESEARCHED
+  CONTACTED
+  INTERESTED
+  FOLLOW_UP
+  WON
+  LOST
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  PAUSING
+  PAUSED
+  STOPPING
+  STOPPED
+  COMPLETED
+  FAILED
+}
+
+enum ServiceProspect {
+  PC_SUPPORT
+  WEBSITE_DEV
+  BOTH
+  GENERAL_BUSINESS
+  NEEDS_REVIEW
+}
+
+model Lead {
+  id              String           @id @default(cuid())
+  businessName    String
+  category        String?
+  website         String?
+  phone           String?
+  email           String?
+  address         String?
+  city            String?
+  state           String?
+  source          String           @default("manual") // "google_maps", "csv_import", "website_crawl", "manual"
+  sourceUrl       String?
+  collectedAt     DateTime         @default(now())
+  notes           String?
+  crmStatus       CrmStatus        @default(NEW)
+  serviceProspect ServiceProspect  @default(GENERAL_BUSINESS)
+  prospectReason  String?
+  
+  // Optional / extra metadata when available
+  rating          String?
+  latitude        String?
+  longitude       String?
+  
+  // Normalized deduplication keys
+  normalizedPhone   String?
+  normalizedDomain  String?
+
+  // Website Enrichment Fields (Phase 5)
+  websiteStatus   String?          // "ONLINE", "UNREACHABLE", "TIMEOUT", "REDIRECT"
+  isHttps         Boolean?
+  pageTitle       String?
+  aboutUrl        String?
+  contactUrl      String?
+  enrichedEmail   String?
+  enrichedPhone   String?
+  enrichedAt      DateTime?
+
+  // SEO & SSR Analysis Fields (Additive Feature)
+  seoScore                Int?
+  seoStatus               String?          // "COMPLETED", "FAILED", "UNAVAILABLE"
+  technicalSeoScore       Int?
+  ssrScore                Int?
+  structureScore          Int?
+  socialSeoScore          Int?
+  accessibilityScore      Int?
+  ssrCoveragePercentage   Float?
+  ssrFramework            String?
+  seoAnalysisResults      Json?
+  seoAnalyzedAt           DateTime?
+
+  lastContactedAt DateTime?
+  nextFollowUpAt  DateTime?
+
+  // Multi-Channel Outreach & Opt-out Fields (Additive Feature)
+  contactName     String?
+  linkedinUrl     String?
+  doNotContact    Boolean          @default(false)
+  unsubscribedAt  DateTime?
+  optOutReason    String?
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  jobId           String?
+  job             DiscoveryJob?    @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  activities         ActivityLog[]
+  outreachRecipients OutreachRecipient[]
+  followUps          FollowUp[]
+
+  @@index([city])
+  @@index([category])
+  @@index([crmStatus])
+  @@index([normalizedPhone])
+  @@index([normalizedDomain])
+  @@index([doNotContact])
+}
+
+model ActivityLog {
+  id           String   @id @default(cuid())
+  leadId       String
+  lead         Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type         String   // "NOTE", "CALL", "EMAIL", "WHATSAPP", "FOLLOW_UP", "STATUS_CHANGE", "ENRICHMENT", "OPT_OUT"
+  content      String
+  channel      String?  // "EMAIL", "WHATSAPP", "PHONE", "FOLLOW_UP", "SYSTEM"
+  recipient    String?
+  subject      String?
+  templateId   String?
+  status       String?  // "COMPOSED", "REQUESTED", "SENT", "FAILED", "OPENED", "CONFIRMED_SENT", "COMPLETED", "SCHEDULED"
+  errorDetails String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([leadId])
+  @@index([channel])
+  @@index([createdAt])
+}
+
+model DiscoveryJob {
+  id                String          @id @default(cuid())
+  location          String
+  selectedKeywords  String[]        // list of keywords
+  maxResults        Int?            // null or 0 means unlimited
+  totalKeywords     Int             @default(0)
+  completedKeywords Int             @default(0)
+  currentKeyword    String?
+  status            JobStatus       @default(PENDING)
+  totalDiscovered   Int             @default(0)
+  newLeadsSaved     Int             @default(0)
+  duplicatesSkipped Int             @default(0)
+  failedRecords     Int             @default(0)
+  errorMessage      String?
+  workerPid         Int?
+  logs              Json?           // JSON array of event logs { timestamp, level, text }
+  
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  leads             Lead[]
+  checkpoints       JobCheckpoint[]
+}
+
+model JobCheckpoint {
+  id               String       @id @default(cuid())
+  jobId            String
+  job              DiscoveryJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  keyword          String
+  status           String       // "pending", "in_progress", "completed", "failed"
+  processedCount   Int          @default(0)
+  lastProcessedUrl String?
+  checkpointData   Json?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@unique([jobId, keyword])
+}
+
+model EmailTemplate {
+  id         String             @id @default(cuid())
+  name       String
+  category   String
+  subject    String
+  body       String
+  isHtml     Boolean            @default(false)
+  isDefault  Boolean            @default(false)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  campaigns  OutreachCampaign[]
+
+  @@index([category])
+  @@index([isDefault])
+}
+
+model OutreachCampaign {
+  id              String              @id @default(cuid())
+  name            String
+  channel         String              // "EMAIL" or "WHATSAPP"
+  templateId      String?
+  template        EmailTemplate?      @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  subject         String?
+  body            String
+  isHtml          Boolean             @default(false)
+  status          String              @default("DRAFT") // "DRAFT", "RUNNING", "PAUSED", "STOPPED", "COMPLETED", "FAILED"
+  batchSize       Int                 @default(10)
+  delayMs         Int                 @default(2500)
+  totalRecipients Int                 @default(0)
+  sentCount       Int                 @default(0)
+  failedCount     Int                 @default(0)
+  skippedCount    Int                 @default(0)
+  pendingCount    Int                 @default(0)
+  errorMessage    String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  recipients      OutreachRecipient[]
+
+  @@index([status])
+  @@index([channel])
+  @@index([createdAt])
+}
+
+model OutreachRecipient {
+  id              String           @id @default(cuid())
+  campaignId      String
+  campaign        OutreachCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  leadId          String
+  lead            Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  channel         String           // "EMAIL" or "WHATSAPP"
+  recipient       String
+  renderedSubject String?
+  renderedBody    String
+  status          String           @default("PENDING") // "PENDING", "SENDING", "SENT", "FAILED", "SKIPPED", "OPENED", "CONFIRMED_SENT"
+  idempotencyKey  String           @unique
+  attempts        Int              @default(0)
+  errorDetails    String?
+  sentAt          DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([campaignId, status])
+  @@index([leadId])
+}
+
+model FollowUp {
+  id          String    @id @default(cuid())
+  leadId      String
+  lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  dueAt       DateTime
+  status      String    @default("PENDING") // "PENDING", "COMPLETED", "CANCELLED"
+  notes       String?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([leadId])
+  @@index([status, dueAt])
+}
