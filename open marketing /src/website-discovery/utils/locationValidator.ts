@@ -29,6 +29,35 @@ const MADURAI_LOCALITY_GRIDS: Record<string, string[]> = {
     'Yanaikkal Road',
     'Vakkil New Street Simmakkal',
   ],
+  'goripalayam': [
+    'Goripalayam Junction',
+    'Alagarkoil Road Goripalayam',
+    'Outpost Goripalayam',
+    'Shenoy Nagar Goripalayam',
+  ],
+  'tallakulam': [
+    'Tallakulam Main Road',
+    'Gokhale Road Tallakulam',
+    'Alagarkoil Road Tallakulam',
+    'Outpost Tallakulam',
+  ],
+  'mattuthavani': [
+    'Mattuthavani Bus Stand',
+    'Ring Road Mattuthavani',
+    'Omni Bus Stand Mattuthavani',
+    'Melur Road Mattuthavani',
+  ],
+  'k pudur': [
+    'K Pudur Main Road',
+    'ITI Bus Stop K Pudur',
+    'Alagar Nagar K Pudur',
+    'New Natham Road Pudur',
+  ],
+  'kappalur': [
+    'Kappalur Industrial Estate',
+    'SIDCO Industrial Estate Kappalur',
+    'Madurai Bypass Kappalur',
+  ],
 };
 
 /**
@@ -45,6 +74,46 @@ const MADURAI_ADJACENT_AREAS: Record<string, string[]> = {
     'vandiyur',
     'tahsildar nagar',
     'mellur road',
+  ],
+  'kk nagar': [
+    'anna nagar',
+    'mattuthavani',
+    'sathamangalam',
+    'gomathipuram',
+    'k pudur',
+  ],
+  'tallakulam': [
+    'goripalayam',
+    'gokhale road',
+    'chinna chokkikulam',
+    'narimedu',
+    'bibikulam',
+  ],
+  'goripalayam': [
+    'tallakulam',
+    'sellur',
+    'simmakkal',
+    'alwarpuram',
+  ],
+  'simmakkal': [
+    'periyar',
+    'yanaikkal',
+    'goripalayam',
+    'south veli',
+    'town hall road',
+  ],
+  'k pudur': [
+    'alagar nagar',
+    'suryanagar',
+    'mattuthavani',
+    'tallakulam',
+    'koodal nagar',
+  ],
+  'mattuthavani': [
+    'kk nagar',
+    'k pudur',
+    'uthangudi',
+    'anna nagar',
   ],
 };
 

@@ -52,14 +52,30 @@ const TAXONOMY_MAP: Record<string, SubcategoryMeta[]> = {
     { name: 'Colleges & Higher Education', searchKeyword: 'College academy', itHardwareLikelihood: 'HIGH' },
   ],
 
-  // 4. Professional Offices & Services Expansion
+  // 4. IT, Web Development & Computer Services (Target Service Expansion)
+  it_services: [
+    { name: 'Computer & Laptop Repair Shops', searchKeyword: 'Computer repair shop', itHardwareLikelihood: 'HIGH' },
+    { name: 'Laptop Service Centers', searchKeyword: 'Laptop service center', itHardwareLikelihood: 'HIGH' },
+    { name: 'Web Design & Development Companies', searchKeyword: 'Web design company', itHardwareLikelihood: 'HIGH' },
+    { name: 'IT Support & Networking AMC Providers', searchKeyword: 'IT support networking AMC', itHardwareLikelihood: 'HIGH' },
+    { name: 'Software Development & Tech Solutions', searchKeyword: 'Software development company', itHardwareLikelihood: 'HIGH' },
+    { name: 'Printer Installation & Repair Services', searchKeyword: 'Printer repair service', itHardwareLikelihood: 'HIGH' },
+    { name: 'CCTV Camera & Security Network Installers', searchKeyword: 'CCTV camera installation', itHardwareLikelihood: 'HIGH' },
+    { name: 'Desktop & Server Maintenance Firms', searchKeyword: 'Computer maintenance AMC', itHardwareLikelihood: 'HIGH' },
+  ],
+
+  // 5. Professional Offices, Chartered Accountants & Legal Services Expansion
   offices: [
-    { name: 'Chartered Accountants & Auditors', searchKeyword: 'Chartered Accountant CA office', itHardwareLikelihood: 'HIGH' },
-    { name: 'Law Firms & Advocates', searchKeyword: 'Advocate law office', itHardwareLikelihood: 'HIGH' },
-    { name: 'Tax Consultants & GST Filing', searchKeyword: 'Tax consultant GST office', itHardwareLikelihood: 'HIGH' },
+    { name: 'Chartered Accountants & Auditors', searchKeyword: 'Chartered Accountant', itHardwareLikelihood: 'HIGH' },
+    { name: 'Auditors & Tax Consultants', searchKeyword: 'Auditor CA firm', itHardwareLikelihood: 'HIGH' },
+    { name: 'Tax Consultants & GST Practitioners', searchKeyword: 'Tax consultant GST office', itHardwareLikelihood: 'HIGH' },
+    { name: 'Law Firms & Advocates', searchKeyword: 'Advocate lawyer office', itHardwareLikelihood: 'HIGH' },
+    { name: 'Company Secretaries & Corporate Advisors', searchKeyword: 'Company secretary CS firm', itHardwareLikelihood: 'HIGH' },
+    { name: 'Accounting & Bookkeeping Firms', searchKeyword: 'Accounting bookkeeping firm', itHardwareLikelihood: 'HIGH' },
     { name: 'Logistics & Courier Services', searchKeyword: 'Courier logistics office', itHardwareLikelihood: 'HIGH' },
-    { name: 'Financial Consultancies', searchKeyword: 'Finance loan consultancy', itHardwareLikelihood: 'HIGH' },
-    { name: 'Real Estate & Builders', searchKeyword: 'Real estate builder promoter office', itHardwareLikelihood: 'HIGH' },
+    { name: 'Financial Consultancies & Loan Services', searchKeyword: 'Finance consultancy office', itHardwareLikelihood: 'HIGH' },
+    { name: 'Real Estate & Builders', searchKeyword: 'Real estate builder office', itHardwareLikelihood: 'HIGH' },
+    { name: 'Architects & Civil Engineers', searchKeyword: 'Architect civil engineer office', itHardwareLikelihood: 'HIGH' },
   ],
 };
 
@@ -69,16 +85,39 @@ const TAXONOMY_MAP: Record<string, SubcategoryMeta[]> = {
 export function expandCategory(rawCategory: string, maxSubcategories = 12): SubcategoryMeta[] {
   const norm = (rawCategory || '').toLowerCase().trim();
 
-  // Match Retail
+  // Match IT / Web / Computer Repair first to avoid falling into generic retail "shop"
   if (
-    norm.includes('retail') ||
-    norm.includes('shop') ||
-    norm.includes('store') ||
-    norm.includes('market') ||
-    norm.includes('commercial') ||
-    norm === 'businesses'
+    norm.includes('computer') ||
+    norm.includes('laptop') ||
+    norm.includes('repair') ||
+    norm.includes('web') ||
+    norm.includes('website') ||
+    norm.includes('software') ||
+    norm.includes('network') ||
+    norm.includes('amc') ||
+    norm.includes('cctv') ||
+    norm.includes('it support') ||
+    norm.includes('tech')
   ) {
-    return TAXONOMY_MAP.retail.slice(0, maxSubcategories);
+    return TAXONOMY_MAP.it_services.slice(0, maxSubcategories);
+  }
+
+  // Match Professional Offices, CA, Tax, Accounts, Law
+  if (
+    norm.includes('account') ||
+    norm.includes('ca ') ||
+    norm.includes('chartered') ||
+    norm.includes('auditor') ||
+    norm.includes('audit') ||
+    norm.includes('tax') ||
+    norm.includes('gst') ||
+    norm.includes('law') ||
+    norm.includes('advocate') ||
+    norm.includes('legal') ||
+    norm.includes('office') ||
+    norm.includes('consultant')
+  ) {
+    return TAXONOMY_MAP.offices.slice(0, maxSubcategories);
   }
 
   // Match Clinics / Healthcare
@@ -87,7 +126,9 @@ export function expandCategory(rawCategory: string, maxSubcategories = 12): Subc
     norm.includes('hospital') ||
     norm.includes('doctor') ||
     norm.includes('health') ||
-    norm.includes('medical')
+    norm.includes('medical') ||
+    norm.includes('dental') ||
+    norm.includes('pharmacy')
   ) {
     return TAXONOMY_MAP.clinics.slice(0, maxSubcategories);
   }
@@ -98,23 +139,27 @@ export function expandCategory(rawCategory: string, maxSubcategories = 12): Subc
     norm.includes('college') ||
     norm.includes('education') ||
     norm.includes('academy') ||
-    norm.includes('tuition')
+    norm.includes('tuition') ||
+    norm.includes('coaching') ||
+    norm.includes('institute')
   ) {
     return TAXONOMY_MAP.education.slice(0, maxSubcategories);
   }
 
-  // Match Offices
+  // Match Retail
   if (
-    norm.includes('office') ||
-    norm.includes('account') ||
-    norm.includes('ca ') ||
-    norm.includes('consultant') ||
-    norm.includes('service')
+    norm.includes('retail') ||
+    norm.includes('shop') ||
+    norm.includes('store') ||
+    norm.includes('market') ||
+    norm.includes('commercial') ||
+    norm.includes('hardware') ||
+    norm === 'businesses'
   ) {
-    return TAXONOMY_MAP.offices.slice(0, maxSubcategories);
+    return TAXONOMY_MAP.retail.slice(0, maxSubcategories);
   }
 
-  // Fallback: If specific subcategory passed (e.g. "Footwear shops" or "Dental"), return it directly
+  // Fallback: If specific subcategory passed, return it with high likelihood
   return [
     { name: rawCategory, searchKeyword: rawCategory, itHardwareLikelihood: 'HIGH' },
   ];

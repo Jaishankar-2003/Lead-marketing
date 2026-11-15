@@ -58,6 +58,51 @@ export interface LeadScores {
   qualificationStatus: QualificationStatus;
 }
 
+export type SearchIntent =
+  | 'business_discovery'
+  | 'contact_discovery'
+  | 'website_discovery'
+  | 'locality_grid'
+  | 'district_context'
+  | 'service_quote';
+
+export interface QueryItem {
+  query: string;
+  category: string;
+  intent?: SearchIntent;
+}
+
+export interface SourceMetrics {
+  sourceName: string;
+  queriesExecuted: number;
+  rawResultsCount: number;
+  validBusinessCount: number;
+  uniqueLeadsContributed: number;
+  duplicateCount: number;
+  websitesFound: number;
+  phonesExtracted: number;
+  emailsExtracted: number;
+  failedRequests: number;
+  executionTimeMs: number;
+  status: 'HEALTHY' | 'DEGRADED' | 'UNAVAILABLE' | 'DISABLED';
+  errorMessage?: string;
+}
+
+export interface SearchSourceAdapter {
+  readonly sourceName: string;
+  readonly isEnabled: boolean;
+  healthCheck(): Promise<{
+    available: boolean;
+    reason?: string;
+    authType?: 'api_key' | 'public_web' | 'self_hosted';
+  }>;
+  search(
+    queries: QueryItem[],
+    options?: { browser?: any; maxResults?: number }
+  ): Promise<RawDiscoveredItem[]>;
+  getMetrics(): SourceMetrics;
+}
+
 export interface RawDiscoveredItem {
   businessName?: string;
   websiteUrl?: string | null;
@@ -71,6 +116,15 @@ export interface RawDiscoveredItem {
   description?: string | null;
   source: string;
   rawLocationSnippet?: string | null;
+  query?: string;
+  searchPosition?: number;
+  sourceEvidence?: Array<{
+    source: string;
+    query?: string;
+    position?: number;
+    snippet?: string;
+    extractedAt: string;
+  }>;
 }
 
 export interface BusinessLead {

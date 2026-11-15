@@ -78,6 +78,7 @@ function startTicker() {
 function parseLogChunk(text: string) {
   // Extract real discovered count
   const discoveredMatch = text.match(/Unique businesses discovered\s*:\s*(\d+)/i) ||
+                          text.match(/TOTAL UNIQUE BUSINESSES\s*:\s*(\d+)/i) ||
                           text.match(/Raw items found\s*:\s*(\d+)/i);
   if (discoveredMatch) {
     activeJob.counters.discoveredCount = parseInt(discoveredMatch[1], 10);

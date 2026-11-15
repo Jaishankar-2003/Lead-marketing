@@ -1,14 +1,16 @@
-import { SearchInput } from '../types';
+import { SearchInput, QueryItem, SearchIntent } from '../types';
 import { expandCategory, SubcategoryMeta } from './categoryTaxonomy';
 import { buildLocationGrids, LocationGrid } from './locationValidator';
 
 /**
- * Builds diverse search engine queries across expanded subcategories and area grids.
+ * Builds diverse search engine queries across expanded subcategories, intents, and Tamil Nadu area grids.
  */
-export function buildSearchQueries(input: SearchInput): Array<{ query: string; category: string }> {
+export function buildSearchQueries(input: SearchInput): QueryItem[] {
   const { area, city, country } = input;
+  const state = 'Tamil Nadu';
   const subcategories = expandCategory(input.category, input.maxSubcategories || 8);
-  const queries: Array<{ query: string; category: string }> = [];
+  const grids = buildLocationGrids(area, city);
+  const queries: QueryItem[] = [];
 
   for (const sub of subcategories) {
     const kw = sub.searchKeyword;
@@ -17,18 +19,44 @@ export function buildSearchQueries(input: SearchInput): Array<{ query: string; c
     queries.push({
       query: `${kw} in ${area} ${city}`,
       category: sub.name,
+      intent: 'business_discovery',
     });
 
-    // Pattern 2: Contact intent search (surfaces local business pages)
+    // Pattern 2: Contact intent search (surfaces local business pages & phone numbers)
     queries.push({
-      query: `"${kw}" "${area}" ${city} "phone" OR "contact"`,
+      query: `"${kw}" "${area}" ${city} "phone" OR "contact" OR "mobile"`,
       category: sub.name,
+      intent: 'contact_discovery',
     });
 
-    // Pattern 3: Official website search
+    // Pattern 3: Official website search with State context
     queries.push({
-      query: `${kw} ${area} ${city} ${country} official website`,
+      query: `${kw} in ${city} ${state} official website`,
       category: sub.name,
+      intent: 'website_discovery',
+    });
+
+    // Pattern 4: State & District context
+    queries.push({
+      query: `${kw} firms in ${city} district ${state}`,
+      category: sub.name,
+      intent: 'district_context',
+    });
+
+    // Pattern 5: Service & Consultation
+    queries.push({
+      query: `${kw} services in ${area} ${city} contact`,
+      category: sub.name,
+      intent: 'service_quote',
+    });
+  }
+
+  // Pattern 6: High-density commercial street grids
+  for (const grid of grids.slice(0, 3)) {
+    queries.push({
+      query: `${input.category} near ${grid.name} ${city}`,
+      category: input.category,
+      intent: 'locality_grid',
     });
   }
 

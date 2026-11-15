@@ -171,6 +171,84 @@ export function validatePhone(rawPhone: string | null | undefined): string | nul
 }
 
 /**
+ * Validates whether a search result represents a genuine business entity
+ * rather than a generic article, informational blog, review list, or forum.
+ */
+export function isLikelyBusinessResult(url: string, title: string, snippet?: string): boolean {
+  if (!url || typeof url !== 'string') return false;
+
+  const lowerUrl = url.toLowerCase();
+  const lowerTitle = (title || '').toLowerCase();
+  const lowerSnippet = (snippet || '').toLowerCase();
+
+  // 1. Filter out obvious informational blog / article paths
+  const junkPathKeywords = [
+    '/blog/', '/blogs/', '/article/', '/articles/', '/news/',
+    '/top-10-', '/top-5-', '/top-20-', '/best-10-', '/best-5-',
+    '/tag/', '/tags/', '/author/', '/category/', '/archive/',
+    '/wiki/', '/wikipedia/', '/forum/', '/questions/', '/discuss/',
+    '/feed/', '/rss/', '/privacy-policy', '/terms-of-service',
+    '/disclaimer', '/copyright'
+  ];
+  if (junkPathKeywords.some((p) => lowerUrl.includes(p))) {
+    return false;
+  }
+
+  // 2. Filter out generic informational / ranking titles
+  const junkTitleKeywords = [
+    'top 10 ', 'top 5 ', 'best 10 ', 'top 20 ', 'list of ',
+    'how to ', 'what is ', 'wikipedia', 'quora', 'reddit',
+    'difference between', 'guide to ', 'tips for '
+  ];
+  if (junkTitleKeywords.some((t) => lowerTitle.startsWith(t) || lowerTitle.includes(` ${t}`))) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Extracts Indian phone numbers (mobile or landline with STD) embedded in search snippets.
+ */
+export function extractSnippetPhone(text: string | null | undefined): string | null {
+  if (!text) return null;
+
+  // Indian mobile regex (+91 optional, starts with 6, 7, 8, or 9)
+  const mobileRegex = /(?:\+91[\s-]?)?[6789]\d{4}[\s-]?\d{5}/g;
+  const matchMobile = text.match(mobileRegex);
+  if (matchMobile && matchMobile.length > 0) {
+    const valid = validatePhone(matchMobile[0]);
+    if (valid) return valid;
+  }
+
+  // Madurai landline regex (0452-XXXXXXX or 0452 XXXXXXX)
+  const landlineRegex = /0\d{3,4}[\s-]?\d{6,7}/g;
+  const matchLandline = text.match(landlineRegex);
+  if (matchLandline && matchLandline.length > 0) {
+    const valid = validatePhone(matchLandline[0]);
+    if (valid) return valid;
+  }
+
+  return null;
+}
+
+/**
+ * Extracts public business email addresses embedded in search snippets.
+ */
+export function extractSnippetEmail(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const matches = text.match(emailRegex);
+  if (matches && matches.length > 0) {
+    for (const m of matches) {
+      const valid = validateEmail(m);
+      if (valid) return valid;
+    }
+  }
+  return null;
+}
+
+/**
  * Validates and filters public business email addresses.
  */
 export function validateEmail(rawEmail: string | null | undefined): string | null {
@@ -218,12 +296,22 @@ export function deduplicateAndMergeLeads<
     websiteUrl?: string | null;
     businessName?: string;
     phone?: string | null;
+    email?: string | null;
     address?: string | null;
     source: string;
     sources?: string[];
     googleMapsUrl?: string | null;
     category?: string;
     description?: string | null;
+    query?: string;
+    searchPosition?: number;
+    sourceEvidence?: Array<{
+      source: string;
+      query?: string;
+      position?: number;
+      snippet?: string;
+      extractedAt: string;
+    }>;
   }
 >(items: T[]): Array<T & { sources: string[] }> {
   const mergedMap = new Map<string, T & { sources: string[] }>();
@@ -249,6 +337,14 @@ export function deduplicateAndMergeLeads<
       matchKey = `raw:${Math.random().toString(36).slice(2)}`;
     }
 
+    const currentEvidence = {
+      source: item.source,
+      query: item.query,
+      position: item.searchPosition,
+      snippet: item.description || undefined,
+      extractedAt: new Date().toISOString(),
+    };
+
     if (mergedMap.has(matchKey)) {
       const existing = mergedMap.get(matchKey)!;
 
@@ -260,6 +356,11 @@ export function deduplicateAndMergeLeads<
       // Merge missing phone
       if (!existing.phone && item.phone) {
         existing.phone = item.phone;
+      }
+
+      // Merge missing email
+      if (!existing.email && item.email) {
+        existing.email = item.email;
       }
 
       // Merge missing website
@@ -281,11 +382,20 @@ export function deduplicateAndMergeLeads<
       if ((!existing.category || existing.category === 'Open' || existing.category === 'Businesses') && item.category && item.category !== 'Open') {
         existing.category = item.category;
       }
+
+      // Append source evidence
+      if (!existing.sourceEvidence) {
+        existing.sourceEvidence = [];
+      }
+      if (!existing.sourceEvidence.some((e) => e.source === item.source && e.query === item.query)) {
+        existing.sourceEvidence.push(currentEvidence);
+      }
     } else {
       mergedMap.set(matchKey, {
         ...item,
         websiteUrl: normUrl,
         sources: [item.source],
+        sourceEvidence: item.sourceEvidence ? [...item.sourceEvidence] : [currentEvidence],
       });
     }
   }
