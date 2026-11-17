@@ -863,14 +863,25 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ lead, onClos
                     </span>
                   ))}
                 </div>
-                {lead.sourceFile && (
+                {(lead.sourceFiles && lead.sourceFiles.length > 0) ? (
+                  <div className="pt-1 text-xs text-[#64748B]">
+                    <span className="text-[11px] text-[#94A3B8] block">Contributing Dataset Files ({lead.sourceFiles.length}):</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {lead.sourceFiles.map((sf, idx) => (
+                        <span key={idx} className="font-mono text-[#4F46E5] bg-white px-2 py-0.5 rounded border border-[#E2E8F0] inline-block text-[11px]">
+                          {sf}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : lead.sourceFile ? (
                   <div className="pt-1 text-xs text-[#64748B]">
                     <span className="text-[11px] text-[#94A3B8] block">Dataset Source File:</span>
                     <span className="font-mono text-[#4F46E5] bg-white px-2 py-0.5 rounded border border-[#E2E8F0] inline-block mt-0.5 truncate max-w-full">
                       {lead.sourceFile}
                     </span>
                   </div>
-                )}
+                ) : null}
                 <p className="text-[11px] text-[#94A3B8] flex items-center gap-1 pt-1">
                   <Calendar className="w-3 h-3 text-[#4F46E5]" />
                   <span>Harvested: {new Date(lead.collectedAt).toLocaleDateString()}</span>

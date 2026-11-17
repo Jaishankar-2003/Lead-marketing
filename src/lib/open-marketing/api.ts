@@ -91,6 +91,28 @@ export const openMarketingApi = {
     return res.json();
   },
 
+  async deleteOutputFile(filename: string): Promise<{ success: boolean; message: string; syncResult?: SyncResult }> {
+    const res = await fetch(`${BASE_URL}/config/files/${encodeURIComponent(filename)}`, {
+      method: 'DELETE',
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to delete dataset file');
+    }
+    return data;
+  },
+
+  async clearOutputFiles(): Promise<{ success: boolean; message: string; deletedCount: number; syncResult?: SyncResult }> {
+    const res = await fetch(`${BASE_URL}/config/files`, {
+      method: 'DELETE',
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to clear dataset files');
+    }
+    return data;
+  },
+
   getExportUrl(params: LeadFilterParams, qualifiedOnly = false): string {
     const query = new URLSearchParams();
     if (qualifiedOnly) query.set('qualifiedOnly', 'true');

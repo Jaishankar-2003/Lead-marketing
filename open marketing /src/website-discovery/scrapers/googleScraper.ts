@@ -85,7 +85,7 @@ export async function scrapeGoogle(
         if (await isCaptchaPage(page)) {
           console.log(`     [Google] Anti-bot challenge detected on query "${query}" (page ${pageNum})`);
           captchaEncountered = true;
-          await page.close().catch(() => {});
+          await page.close().catch(() => { });
           break;
         }
 
@@ -177,7 +177,7 @@ export async function scrapeGoogle(
 
         // If page 1 produced very few results (< 4), there's no page 2 available
         if (results.length < 4) {
-          await page.close().catch(() => {});
+          await page.close().catch(() => { });
           break;
         }
       } catch (err) {
@@ -186,7 +186,7 @@ export async function scrapeGoogle(
           err instanceof Error ? err.message : err
         );
       } finally {
-        await page.close().catch(() => {});
+        await page.close().catch(() => { });
       }
 
       await randomDelay(800, 1500);
@@ -195,6 +195,6 @@ export async function scrapeGoogle(
     await randomDelay(CONFIG.delayBetweenRequests.min, CONFIG.delayBetweenRequests.max);
   }
 
-  await context.close().catch(() => {});
+  await context.close().catch(() => { });
   return items;
 }

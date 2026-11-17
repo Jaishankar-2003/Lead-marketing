@@ -13,6 +13,8 @@ export interface OpenMarketingContextType {
   refresh: () => Promise<void>;
   handleSync: () => Promise<void>;
   handleUpdateOutputDir: (path: string) => Promise<void>;
+  handleDeleteOutputFile: (filename: string) => Promise<void>;
+  handleClearOutputFiles: () => Promise<void>;
 }
 
 const OpenMarketingContext = createContext<OpenMarketingContextType>({
@@ -24,6 +26,8 @@ const OpenMarketingContext = createContext<OpenMarketingContextType>({
   refresh: async () => {},
   handleSync: async () => {},
   handleUpdateOutputDir: async () => {},
+  handleDeleteOutputFile: async () => {},
+  handleClearOutputFiles: async () => {},
 });
 
 export const useOpenMarketing = () => useContext(OpenMarketingContext);
@@ -83,6 +87,36 @@ export function OpenMarketingProvider({ children }: { children: React.ReactNode 
     }
   };
 
+  const handleDeleteOutputFile = async (filename: string) => {
+    setIsSyncing(true);
+    try {
+      const res = await openMarketingApi.deleteOutputFile(filename);
+      await fetchDashboardData();
+      setSyncToast(res.message || `Deleted file: ${filename}`);
+    } catch (err: any) {
+      setSyncToast(`Delete failed: ${err.message}`);
+      throw err;
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncToast(null), 4000);
+    }
+  };
+
+  const handleClearOutputFiles = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await openMarketingApi.clearOutputFiles();
+      await fetchDashboardData();
+      setSyncToast(res.message || 'Output datasets cleared');
+    } catch (err: any) {
+      setSyncToast(`Clear failed: ${err.message}`);
+      throw err;
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncToast(null), 4000);
+    }
+  };
+
   const value: OpenMarketingContextType = {
     dashboardData,
     loading,
@@ -92,6 +126,8 @@ export function OpenMarketingProvider({ children }: { children: React.ReactNode 
     refresh: fetchDashboardData,
     handleSync,
     handleUpdateOutputDir,
+    handleDeleteOutputFile,
+    handleClearOutputFiles,
   };
 
   return (

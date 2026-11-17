@@ -73,6 +73,7 @@ export interface BusinessLead {
   collectedAt: string;
   primaryOpportunity?: 'WEB_DEV' | 'PC_REPAIR' | 'NETWORKING_AMC' | 'NONE';
   sourceFile?: string; // Filename from which this lead was loaded (e.g. all_leads_anna_med.json)
+  sourceFiles?: string[]; // All filenames that contributed to this lead across multiple datasets
 }
 
 export interface FileInfo {
@@ -95,6 +96,8 @@ export interface SyncResult {
   qualifiedLeadsCount: number;
   totalFilesScanned: number;
   datasetsFound: string[];
+  rawRecordsScanned?: number;
+  duplicatesResolved?: number;
   files: Record<string, FileInfo>;
   isStale: boolean;
   warning?: string;

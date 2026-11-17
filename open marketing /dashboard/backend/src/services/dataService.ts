@@ -90,10 +90,10 @@ class DataService {
       errors.push(`Failed to read output directory: ${err.message}`);
     }
 
-    // Filter for JSON and CSV data files (skip txt, log, hidden files)
+    // Filter for JSON, CSV, and TXT data files (skip hidden files)
     const validDataFiles = dirEntries.filter((f) => {
       const lower = f.toLowerCase();
-      return (lower.endsWith('.json') || lower.endsWith('.csv')) && !f.startsWith('.');
+      return (lower.endsWith('.json') || lower.endsWith('.csv') || lower.endsWith('.txt')) && !f.startsWith('.');
     });
 
     // 2. Classify and group files
@@ -102,7 +102,7 @@ class DataService {
       baseName: string;
       jsonFile?: string;
       csvFile?: string;
-      type: 'ALL_LEADS' | 'QUALIFIED_LEADS';
+      type: 'ALL_LEADS' | 'QUALIFIED_LEADS' | 'OTHER';
     }
 
     const groups: Map<string, FileGroup> = new Map();
@@ -111,27 +111,36 @@ class DataService {
       const ext = path.extname(file).toLowerCase();
       const base = path.basename(file, ext);
       const isQualified = base.toLowerCase().includes('qualified') || base.toLowerCase().includes('qual');
-      const type = isQualified ? 'QUALIFIED_LEADS' : 'ALL_LEADS';
+      const isOther = ext === '.txt';
+      const type = isOther ? 'OTHER' : isQualified ? 'QUALIFIED_LEADS' : 'ALL_LEADS';
 
-      if (!groups.has(base)) {
+      if (!isOther && !groups.has(base)) {
         groups.set(base, { baseName: base, type });
       }
 
-      const g = groups.get(base)!;
-      if (ext === '.json') g.jsonFile = file;
-      if (ext === '.csv') g.csvFile = file;
+      if (!isOther) {
+        const g = groups.get(base)!;
+        if (ext === '.json') g.jsonFile = file;
+        if (ext === '.csv') g.csvFile = file;
+      }
 
       // Register file info
       const fullPath = path.join(this.currentOutputDir, file);
       try {
         const stat = fs.statSync(fullPath);
+        let recordsCount = 0;
+        if (ext === '.txt') {
+          const raw = fs.readFileSync(fullPath, 'utf-8');
+          recordsCount = raw.split('\n').filter((l) => l.trim().length > 0).length;
+        }
+
         filesInfo[file] = {
           filename: file,
           path: fullPath,
           exists: true,
           sizeBytes: stat.size,
           lastModified: stat.mtime.toISOString(),
-          recordsCount: 0,
+          recordsCount,
           status: 'OK',
           fileType: type,
         };
@@ -218,20 +227,24 @@ class DataService {
       }
     }
 
-    // If no explicit qualified files existed, filter qualified leads directly from all leads
-    if (collectedQualifiedLeads.length === 0 && collectedAllLeads.length > 0) {
-      collectedQualifiedLeads.push(
-        ...collectedAllLeads.filter((l) => l.leadScores?.qualificationStatus === 'QUALIFIED')
-      );
-    }
+    // 4. Intelligent Cross-File Deduplication and Record Merging
+    // Combine all parsed leads and perform multi-key deduplication (Phone, Domain, Name+Locality)
+    const combinedRawLeads = [...collectedAllLeads, ...collectedQualifiedLeads];
+    const rawRecordsScanned = combinedRawLeads.length;
+    const dedupedLeads = this.deduplicateAndMergeLeads(combinedRawLeads);
+    const duplicatesResolved = rawRecordsScanned - dedupedLeads.length;
 
-    // 4. Update in-memory state
-    const hasData = collectedAllLeads.length > 0 || collectedQualifiedLeads.length > 0;
+    const dedupedQualified = dedupedLeads.filter(
+      (l) => l.leadScores?.qualificationStatus === 'QUALIFIED'
+    );
+
+    // 5. Update in-memory state
+    const hasData = dedupedLeads.length > 0;
     const isSuccess = hasData && errors.length === 0;
 
     if (hasData) {
-      this.allLeads = collectedAllLeads;
-      this.qualifiedLeads = collectedQualifiedLeads;
+      this.allLeads = dedupedLeads;
+      this.qualifiedLeads = dedupedQualified;
       this.isStale = errors.length > 0;
 
       this.lastSyncResult = {
@@ -242,6 +255,8 @@ class DataService {
         qualifiedLeadsCount: this.qualifiedLeads.length,
         totalFilesScanned: validDataFiles.length,
         datasetsFound,
+        rawRecordsScanned,
+        duplicatesResolved,
         files: filesInfo,
         isStale: this.isStale,
         warning: errors.length > 0 ? errors.join('; ') : undefined,
@@ -249,15 +264,19 @@ class DataService {
       };
       return this.lastSyncResult;
     } else {
+      this.allLeads = [];
+      this.qualifiedLeads = [];
       this.isStale = true;
       this.lastSyncResult = {
         success: false,
         timestamp,
         outputDir: this.currentOutputDir,
-        allLeadsCount: this.allLeads.length,
-        qualifiedLeadsCount: this.qualifiedLeads.length,
+        allLeadsCount: 0,
+        qualifiedLeadsCount: 0,
         totalFilesScanned: validDataFiles.length,
         datasetsFound,
+        rawRecordsScanned: 0,
+        duplicatesResolved: 0,
         files: filesInfo,
         isStale: true,
         warning: 'No valid lead datasets found inside output folder.',
@@ -265,6 +284,250 @@ class DataService {
       };
       return this.lastSyncResult;
     }
+  }
+
+  /**
+   * Safely deletes a specific file from the configured output directory.
+   */
+  public async deleteFile(filename: string): Promise<{ success: boolean; message: string; syncResult?: SyncResult }> {
+    try {
+      const cleanName = path.basename(filename.trim());
+      if (!cleanName || cleanName === '.' || cleanName === '..') {
+        return { success: false, message: 'Invalid filename provided' };
+      }
+
+      // Restrict deletion to allowed extensions inside outputDir
+      const ext = path.extname(cleanName).toLowerCase();
+      if (!['.json', '.csv', '.txt'].includes(ext)) {
+        return { success: false, message: 'Only .json, .csv, and .txt files can be deleted' };
+      }
+
+      const targetPath = path.join(this.currentOutputDir, cleanName);
+      if (!fs.existsSync(targetPath)) {
+        return { success: false, message: `File does not exist: ${cleanName}` };
+      }
+
+      fs.unlinkSync(targetPath);
+
+      // Automatically re-synchronize data after deletion
+      const syncResult = await this.syncData();
+
+      return {
+        success: true,
+        message: `Successfully deleted ${cleanName}`,
+        syncResult,
+      };
+    } catch (err: any) {
+      return { success: false, message: `Failed to delete file: ${err.message}` };
+    }
+  }
+
+  /**
+   * Cleans all data files (.json, .csv, .txt) from the configured output directory.
+   */
+  public async clearOutputFiles(): Promise<{ success: boolean; message: string; deletedCount: number; syncResult?: SyncResult }> {
+    try {
+      if (!fs.existsSync(this.currentOutputDir)) {
+        return { success: false, message: 'Output directory does not exist', deletedCount: 0 };
+      }
+
+      const entries = fs.readdirSync(this.currentOutputDir);
+      let count = 0;
+      for (const f of entries) {
+        const ext = path.extname(f).toLowerCase();
+        if (['.json', '.csv', '.txt'].includes(ext)) {
+          fs.unlinkSync(path.join(this.currentOutputDir, f));
+          count++;
+        }
+      }
+
+      const syncResult = await this.syncData();
+
+      return {
+        success: true,
+        message: `Deleted ${count} file(s) from output directory`,
+        deletedCount: count,
+        syncResult,
+      };
+    } catch (err: any) {
+      return { success: false, message: `Failed to clear files: ${err.message}`, deletedCount: 0 };
+    }
+  }
+
+  /**
+   * Normalizes an Indian or international phone number to its canonical 10-digit format.
+   */
+  private normalizePhone(rawPhone?: string | null): string | null {
+    if (!rawPhone || rawPhone === 'N/A' || rawPhone === 'None') return null;
+    let digits = String(rawPhone).replace(/\D/g, '');
+    if (!digits || digits.length < 7) return null;
+    if (digits.length === 11 && digits.startsWith('0')) {
+      digits = digits.slice(1);
+    }
+    if (digits.length === 12 && digits.startsWith('91')) {
+      digits = digits.slice(2);
+    }
+    if (digits.length >= 10) {
+      return digits.slice(-10);
+    }
+    return digits;
+  }
+
+  /**
+   * Normalizes a business website domain to its root hostname, ignoring protocol, www, and query.
+   */
+  private normalizeDomain(rawUrl?: string | null): string | null {
+    if (!rawUrl || rawUrl === 'N/A' || rawUrl === 'None') return null;
+    try {
+      let u = String(rawUrl).trim().toLowerCase();
+      if (!u.startsWith('http://') && !u.startsWith('https://')) {
+        u = 'http://' + u;
+      }
+      const parsed = new URL(u);
+      const host = parsed.hostname.replace(/^www\./, '');
+      const genericAggregators = [
+        'facebook.com',
+        'instagram.com',
+        'linkedin.com',
+        'twitter.com',
+        'x.com',
+        'youtube.com',
+        'justdial.com',
+        'indiamart.com',
+        'sulekha.com',
+        'google.com',
+        'google.co.in',
+        'maps.google.com',
+      ];
+      if (genericAggregators.some((g) => host === g || host.endsWith('.' + g))) {
+        return null;
+      }
+      return host;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Normalizes business name and locality to a canonical matching key.
+   */
+  private normalizeNameLoc(businessName?: string | null, area?: string | null, city?: string | null): string | null {
+    if (!businessName || businessName === 'Unnamed Business') return null;
+    const cleanName = businessName
+      .toLowerCase()
+      .replace(/\b(pvt|ltd|private|limited|associates|advocate|lawyer|law|firm|company|services|service|centre|center|shop|stores|agency)\b/g, '')
+      .replace(/[^a-z0-9]/g, '');
+    if (cleanName.length < 3) return null;
+
+    const loc = ((area || '') + (city || '')).toLowerCase().replace(/[^a-z0-9]/g, '');
+    return `${cleanName}_${loc.slice(0, 10)}`;
+  }
+
+  /**
+   * Multi-key deduplication and intelligent record merging across multiple dataset files.
+   */
+  private deduplicateAndMergeLeads(leads: BusinessLead[]): BusinessLead[] {
+    const uniqueList: BusinessLead[] = [];
+    const phoneMap = new Map<string, number>();
+    const domainMap = new Map<string, number>();
+    const nameLocMap = new Map<string, number>();
+
+    for (const lead of leads) {
+      const normPhone = this.normalizePhone(lead.phone);
+      const normDomain =
+        this.normalizeDomain(lead.websiteUrl) ||
+        (lead.rootDomain ? this.normalizeDomain('http://' + lead.rootDomain) : null);
+      const normNameLoc = this.normalizeNameLoc(lead.businessName, lead.area, lead.city);
+
+      let existingIndex: number | undefined = undefined;
+
+      if (normPhone && phoneMap.has(normPhone)) {
+        existingIndex = phoneMap.get(normPhone);
+      } else if (normDomain && domainMap.has(normDomain)) {
+        existingIndex = domainMap.get(normDomain);
+      } else if (normNameLoc && nameLocMap.has(normNameLoc)) {
+        existingIndex = nameLocMap.get(normNameLoc);
+      }
+
+      if (existingIndex !== undefined) {
+        // Merge with existing record
+        const existing = uniqueList[existingIndex];
+
+        // Fill in missing phone
+        if (!existing.phone && lead.phone) {
+          existing.phone = lead.phone;
+          const p = this.normalizePhone(lead.phone);
+          if (p) phoneMap.set(p, existingIndex);
+        }
+        // Fill in missing email
+        if (!existing.email && lead.email) {
+          existing.email = lead.email;
+        }
+        // Fill in missing website
+        if ((!existing.websiteUrl || existing.websiteStatus === 'NEEDS_VERIFICATION') && lead.websiteUrl) {
+          existing.websiteUrl = lead.websiteUrl;
+          existing.rootDomain = lead.rootDomain || existing.rootDomain;
+          existing.websiteStatus = lead.websiteStatus;
+          existing.websiteAnalysis = lead.websiteAnalysis || existing.websiteAnalysis;
+          const d = this.normalizeDomain(lead.websiteUrl);
+          if (d) domainMap.set(d, existingIndex);
+        }
+        // Fill in missing address
+        if (!existing.address && lead.address) {
+          existing.address = lead.address;
+        }
+        // Fill in missing googleMapsUrl
+        if (!existing.googleMapsUrl && lead.googleMapsUrl) {
+          existing.googleMapsUrl = lead.googleMapsUrl;
+        }
+
+        // Merge sources
+        const mergedSources = new Set<string>([...existing.sources, ...lead.sources]);
+        existing.sources = Array.from(mergedSources);
+
+        // Merge sourceFiles
+        const existingFiles = existing.sourceFiles || (existing.sourceFile ? [existing.sourceFile] : []);
+        const newFiles = lead.sourceFiles || (lead.sourceFile ? [lead.sourceFile] : []);
+        existing.sourceFiles = Array.from(new Set([...existingFiles, ...newFiles]));
+
+        // Keep highest scores
+        const exScores = existing.leadScores;
+        const newScores = lead.leadScores;
+        if (newScores) {
+          exScores.websiteDevScore = Math.max(exScores.websiteDevScore || 0, newScores.websiteDevScore || 0);
+          exScores.pcRepairScore = Math.max(exScores.pcRepairScore || 0, newScores.pcRepairScore || 0);
+          exScores.networkingAmcScore = Math.max(exScores.networkingAmcScore || 0, newScores.networkingAmcScore || 0);
+          if (newScores.qualificationStatus === 'QUALIFIED' && exScores.qualificationStatus !== 'QUALIFIED') {
+            exScores.qualificationStatus = 'QUALIFIED';
+            exScores.qualificationReason = newScores.qualificationReason || exScores.qualificationReason;
+          }
+        }
+
+        // Re-evaluate primary opportunity
+        const maxScore = Math.max(exScores.websiteDevScore || 0, exScores.pcRepairScore || 0, exScores.networkingAmcScore || 0);
+        if (maxScore >= 40) {
+          if (exScores.websiteDevScore === maxScore) existing.primaryOpportunity = 'WEB_DEV';
+          else if (exScores.pcRepairScore === maxScore) existing.primaryOpportunity = 'PC_REPAIR';
+          else existing.primaryOpportunity = 'NETWORKING_AMC';
+        }
+      } else {
+        // New unique record
+        const newIndex = uniqueList.length;
+        const leadCopy: BusinessLead = {
+          ...lead,
+          id: `lead_${newIndex + 1}`,
+          sourceFiles: lead.sourceFile ? [lead.sourceFile] : lead.sourceFiles || [],
+        };
+
+        uniqueList.push(leadCopy);
+
+        if (normPhone) phoneMap.set(normPhone, newIndex);
+        if (normDomain) domainMap.set(normDomain, newIndex);
+        if (normNameLoc) nameLocMap.set(normNameLoc, newIndex);
+      }
+    }
+
+    return uniqueList;
   }
 
   private normalizeLeads(rawItems: any[], sourceFile: string): BusinessLead[] {

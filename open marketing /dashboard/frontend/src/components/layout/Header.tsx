@@ -60,15 +60,15 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <header className="h-16 px-8 border-b border-border bg-card/60 backdrop-blur-md flex items-center justify-between sticky top-0 z-20">
+      <header className="h-16 px-6 lg:px-8 border-b border-border bg-card/60 backdrop-blur-md flex items-center justify-between sticky top-0 z-20 gap-4">
         {/* Left: Active Tab Title & Path */}
-        <div className="flex items-center gap-6">
-          <h2 className="text-lg font-semibold text-slate-100">{activeTabTitle}</h2>
+        <div className="flex items-center gap-4 min-w-0">
+          <h2 className="text-lg font-semibold text-slate-100 truncate">{activeTabTitle}</h2>
 
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/60 border border-border text-xs text-slate-300">
-            <FolderOpen className="w-3.5 h-3.5 text-slate-400" />
-            <span className="font-mono text-slate-400 max-w-xs truncate" title={syncStatus?.outputDir}>
-              {syncStatus?.outputDir || 'Loading path...'}
+          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/60 border border-border text-xs text-slate-300 shrink-0">
+            <FolderOpen className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="font-mono text-slate-400 max-w-[200px] truncate" title={syncStatus?.outputDir}>
+              {syncStatus?.outputDir ? syncStatus.outputDir.split('/').filter(Boolean).pop() || 'output' : 'Loading path...'}
             </span>
             <button
               onClick={handleOpenFolderModal}
@@ -81,7 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Right: Sync Status & Button */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 lg:gap-4 shrink-0">
           {/* Status Indicators */}
           {syncStatus && (
             <div className="flex items-center gap-3 text-xs">

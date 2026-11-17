@@ -235,12 +235,37 @@ export async function discoverAndQualifyLeads(input: SearchInput): Promise<Busin
   );
   const unqualified = finalLeads.filter((l) => l.leadScores.qualificationStatus === 'UNQUALIFIED');
 
+  // Generate scan-specific unique timestamp and slug so every scan creates a new output file
+  const scanDate = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const timestamp = `${scanDate.getFullYear()}${pad(scanDate.getMonth() + 1)}${pad(scanDate.getDate())}_${pad(scanDate.getHours())}${pad(scanDate.getMinutes())}${pad(scanDate.getSeconds())}`;
+
+  const sanitizeSlug = (s: string) =>
+    s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 25);
+
+  const catSlug = sanitizeSlug(input.category || 'leads');
+  const areaSlug = sanitizeSlug(input.area || 'local');
+
+  const scanAllJson = `all_leads_${catSlug}_${areaSlug}_${timestamp}.json`;
+  const scanAllCsv = `all_leads_${catSlug}_${areaSlug}_${timestamp}.csv`;
+  const scanQualJson = `qualified_leads_${catSlug}_${areaSlug}_${timestamp}.json`;
+  const scanQualCsv = `qualified_leads_${catSlug}_${areaSlug}_${timestamp}.csv`;
+
   // Exports
+  console.log(`\n💾 Exporting leads to structured datasets...`);
+  exportLeadsToCsv(finalLeads, scanAllCsv);
+  exportLeadsToJson(finalLeads, scanAllJson);
+  exportLeadsToCsv(qualifiedLeads, scanQualCsv);
+  exportLeadsToJson(qualifiedLeads, scanQualJson);
+
   const allCsv = exportLeadsToCsv(finalLeads, CONFIG.allLeadsCsv);
   const allJson = exportLeadsToJson(finalLeads, CONFIG.allLeadsJson);
   const qualCsv = exportLeadsToCsv(qualifiedLeads, CONFIG.qualifiedLeadsCsv);
   const qualJson = exportLeadsToJson(qualifiedLeads, CONFIG.qualifiedLeadsJson);
   const txtPath = exportWebsitesTxt(finalLeads, CONFIG.txtFileName);
+
+  console.log(`   📁 Created dedicated scan files: ${scanAllJson}, ${scanAllCsv}`);
+  console.log(`   📁 Updated snapshot: ${CONFIG.allLeadsJson}, ${CONFIG.allLeadsCsv}`);
 
   // Print Structured Final Metrics
   console.log(`\n===================================================================`);

@@ -174,11 +174,18 @@ export const QualifiedLeadCard: React.FC<QualifiedLeadCardProps> = ({
                   <span>{topOpp}</span>
                 </span>
                 <LocationStatusBadge status={lead.locationStatus} />
-                {lead.sourceFile && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#F1F5F9] text-[#64748B] font-mono border border-[#E2E8F0] truncate max-w-[120px]">
+                {lead.sourceFiles && lead.sourceFiles.length > 1 ? (
+                  <span
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-[#EEF2FF] text-[#4F46E5] font-semibold border border-[#C7D2FE] cursor-help"
+                    title={`Found across ${lead.sourceFiles.length} files: ${lead.sourceFiles.join(', ')}`}
+                  >
+                    {lead.sourceFiles.length} files
+                  </span>
+                ) : lead.sourceFile ? (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#F1F5F9] text-[#64748B] font-mono border border-[#E2E8F0] truncate max-w-[120px]" title={lead.sourceFile}>
                     {lead.sourceFile}
                   </span>
-                )}
+                ) : null}
               </div>
 
               <h3 className="text-base font-bold text-[#172033] group-hover:text-[#4F46E5] transition-colors pt-1 truncate" title={lead.businessName}>

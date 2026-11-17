@@ -222,11 +222,21 @@ export const LeadTable: React.FC<LeadTableProps> = ({
                       </div>
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                         <QualificationBadge status={lead.leadScores.qualificationStatus} />
-                        {lead.sourceFile && (
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#F1F5F9] text-[#64748B] font-mono border border-[#E2E8F0] truncate max-w-[130px]">
+                        {lead.sourceFiles && lead.sourceFiles.length > 1 ? (
+                          <span
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-[#EEF2FF] text-[#4F46E5] font-semibold border border-[#C7D2FE] cursor-help"
+                            title={`Found across ${lead.sourceFiles.length} files: ${lead.sourceFiles.join(', ')}`}
+                          >
+                            {lead.sourceFiles.length} files
+                          </span>
+                        ) : lead.sourceFile ? (
+                          <span
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-[#F1F5F9] text-[#64748B] font-mono border border-[#E2E8F0] truncate max-w-[130px]"
+                            title={lead.sourceFile}
+                          >
                             {lead.sourceFile}
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     </td>
 

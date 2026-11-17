@@ -45,5 +45,26 @@ router.put('/', async (req: Request, res: Response) => {
   });
 });
 
+// DELETE /api/config/files/:filename - Delete a single dataset file
+router.delete('/files/:filename', async (req: Request, res: Response) => {
+  const { filename } = req.params;
+  const result = await dataService.deleteFile(filename);
+  if (!result.success) {
+    res.status(400).json({ error: result.message });
+    return;
+  }
+  res.json(result);
+});
+
+// DELETE /api/config/files - Purge all output dataset files
+router.delete('/files', async (_req: Request, res: Response) => {
+  const result = await dataService.clearOutputFiles();
+  if (!result.success) {
+    res.status(400).json({ error: result.message });
+    return;
+  }
+  res.json(result);
+});
+
 export default router;
 
