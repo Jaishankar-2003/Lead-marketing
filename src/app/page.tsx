@@ -124,6 +124,52 @@ export default function DashboardPage() {
       />
 
       <div className="p-8 space-y-8 max-w-7xl mx-auto w-full">
+        {/* Open Marketing Module Quick Access Banner */}
+        <section className="bg-gradient-to-r from-[#EEF2FF] via-white to-[#F0FDF4] dark:from-crm-navySurface dark:via-crm-navy dark:to-crm-navyElevated border border-[#C7D2FE] dark:border-crm-sky/30 rounded-2xl p-6 shadow-sm">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#4F46E5] text-white uppercase tracking-wider">
+                  Latest Module
+                </span>
+                <span className="text-xs font-semibold text-[#4F46E5] dark:text-crm-sky">
+                  Open Marketing Lead Intelligence &amp; Discovery
+                </span>
+              </div>
+              <h2 className="text-lg font-bold text-[#172033] dark:text-white">
+                Multi-Search Lead Intelligence &amp; Autonomous Scraper
+              </h2>
+              <p className="text-xs text-[#64748B] dark:text-crm-sky/80 mt-1 max-w-xl">
+                Access your updated multi-engine discovery scraper (Headless / Headed), lead scoring, web audit, and deduplicated local business databases.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <Link
+                href="/open-marketing"
+                className="px-4 py-2 rounded-lg bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5"
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>Open Intelligence Hub</span>
+              </Link>
+              <Link
+                href="/open-marketing/discovery"
+                className="px-4 py-2 rounded-lg bg-white dark:bg-crm-navySurface hover:bg-[#F8FAFC] text-[#172033] dark:text-white text-xs font-semibold border border-[#CBD5E1] dark:border-crm-sky/30 shadow-sm transition-all flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
+                <span>Business Discovery Scraper</span>
+              </Link>
+              <Link
+                href="/open-marketing/leads"
+                className="px-3.5 py-2 rounded-lg bg-white dark:bg-crm-navySurface hover:bg-[#F8FAFC] text-[#475569] dark:text-crm-sky text-xs font-medium border border-[#E2E8F0] dark:border-crm-sky/20 transition-all flex items-center gap-1.5"
+              >
+                <Users className="w-3.5 h-3.5 text-[#4F46E5]" />
+                <span>Discovered Leads</span>
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* KPI Grid */}
         <section>
           <div className="flex items-center justify-between mb-4">

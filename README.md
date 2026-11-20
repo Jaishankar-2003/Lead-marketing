@@ -212,7 +212,13 @@ This verifies:
 - CSV import with duplicate rejection and CSV export.
 - Preservation of original Playwright POM and test specs.
 
-only
+---
+
+## 🚀 Quick Start Guide
+
+```bash
+# 1. Install dependencies
+npm install
 
 # 2. Start PostgreSQL (initializes workspace database automatically)
 npm run db:start

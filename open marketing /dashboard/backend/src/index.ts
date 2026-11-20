@@ -50,7 +50,7 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
-app.listen(CONFIG.port, () => {
+app.listen(CONFIG.port, '0.0.0.0', () => {
   console.log(`\n===================================================================`);
   console.log(`🚀 Lead Intelligence Dashboard running on: http://localhost:${CONFIG.port}`);
   console.log(`📁 Configured Output Directory: ${CONFIG.defaultOutputDir}`);

@@ -45,6 +45,16 @@ if [ -f /tmp/.s.PGSQL.5432.lock ]; then
     fi
 fi
 
+# Clean up stale postmaster.pid and shared memory if previous server was killed
+if [ -f "$PG_DATA/postmaster.pid" ]; then
+    PID_IN_FILE=$(head -n 1 "$PG_DATA/postmaster.pid" 2>/dev/null || true)
+    if [ -n "$PID_IN_FILE" ] && ! kill -0 "$PID_IN_FILE" 2>/dev/null; then
+        echo "Cleaning up stale postmaster.pid (PID $PID_IN_FILE is not running)..."
+        rm -f "$PG_DATA/postmaster.pid" 2>/dev/null || true
+        ipcrm --all=shm 2>/dev/null || true
+    fi
+fi
+
 # Check if PostgreSQL is already running
 if "$PG_ISREADY_BIN" -h 127.0.0.1 -p 5432 >/dev/null 2>&1 || "$PG_ISREADY_BIN" -h localhost -p 5432 >/dev/null 2>&1 || "$PG_ISREADY_BIN" -h /tmp -p 5432 >/dev/null 2>&1; then
     echo "PostgreSQL is already running."

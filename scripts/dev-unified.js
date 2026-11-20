@@ -7,8 +7,9 @@
  * health checking, and signal forwarding.
  */
 
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const http = require('http');
+const net = require('net');
 const path = require('path');
 
 const MARKETING_ROOT = path.resolve(__dirname, '..');
@@ -24,24 +25,63 @@ let openMarketingChild = null;
 let nextChild = null;
 let isShuttingDown = false;
 
+function isPortInUse(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    });
+    server.once('listening', () => {
+      server.close(() => resolve(false));
+    });
+    server.listen(port, '0.0.0.0');
+  });
+}
+
+function killProcessOnPort(port) {
+  try {
+    const pids = execSync(`lsof -ti:${port} 2>/dev/null || fuser ${port}/tcp 2>/dev/null`, { encoding: 'utf8' }).trim();
+    if (pids) {
+      const pidList = pids.split(/\s+/).filter(Boolean);
+      console.log(`[Supervisor] Terminating stale process on port ${port} (PIDs: ${pidList.join(', ')})...`);
+      execSync(`kill -9 ${pidList.join(' ')} 2>/dev/null || true`);
+      return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
 function checkHealth(port, path = '/api/health') {
   return new Promise((resolve) => {
-    const req = http.get(
-      {
-        host: '127.0.0.1',
-        port,
-        path,
-        timeout: 1000,
-      },
-      (res) => {
-        resolve(res.statusCode === 200);
-      }
-    );
-    req.on('error', () => resolve(false));
-    req.on('timeout', () => {
-      req.destroy();
-      resolve(false);
-    });
+    const tryHost = (host) => {
+      const req = http.get(
+        {
+          host,
+          port,
+          path,
+          timeout: 1500,
+        },
+        (res) => {
+          resolve(res.statusCode >= 200 && res.statusCode < 400);
+        }
+      );
+      req.on('error', () => {
+        if (host === '127.0.0.1') {
+          tryHost('localhost');
+        } else {
+          resolve(false);
+        }
+      });
+      req.on('timeout', () => {
+        req.destroy();
+        resolve(false);
+      });
+    };
+    tryHost('127.0.0.1');
   });
 }
 
@@ -100,12 +140,33 @@ async function main() {
   console.log('🚀 Starting LeadPilot & Open Marketing Unified Platform');
   console.log('================================================================\n');
 
-  // 1. Check if Open Marketing Backend is already running
-  const backendAlreadyRunning = await checkHealth(OPEN_MARKETING_PORT);
+  // 0. Ensure PostgreSQL is running
+  try {
+    const { execSync } = require('child_process');
+    console.log('[Database] Checking PostgreSQL database service...');
+    execSync('bash scripts/db-start.sh', { cwd: MARKETING_ROOT, stdio: 'inherit' });
+    console.log('[Database] PostgreSQL is ready.\n');
+  } catch (err) {
+    console.warn('[Database] Notice: PostgreSQL check finished with status:', err.status || 0);
+  }
 
-  if (backendAlreadyRunning) {
-    console.log(`[OpenMarketing] Backend already running on port ${OPEN_MARKETING_PORT}`);
-  } else {
+  // 1. Check if Open Marketing Backend is already running or port 3001 is in use
+  const inUse3001 = await isPortInUse(OPEN_MARKETING_PORT);
+  let backendReady = false;
+
+  if (inUse3001) {
+    const healthy = await checkHealth(OPEN_MARKETING_PORT);
+    if (healthy) {
+      console.log(`[OpenMarketing] Backend already running and healthy on port ${OPEN_MARKETING_PORT}`);
+      backendReady = true;
+    } else {
+      console.log(`[OpenMarketing] Port ${OPEN_MARKETING_PORT} is blocked by an unresponsive process. Freeing port...`);
+      killProcessOnPort(OPEN_MARKETING_PORT);
+      await new Promise((r) => setTimeout(r, 600));
+    }
+  }
+
+  if (!backendReady) {
     console.log(`[OpenMarketing] Launching backend service from: ${OPEN_MARKETING_BACKEND_DIR}`);
     openMarketingChild = spawn('node', ['dist/index.js'], {
       cwd: OPEN_MARKETING_BACKEND_DIR,
@@ -137,6 +198,17 @@ async function main() {
       return;
     }
     console.log(`✓ [OpenMarketing] Backend health check PASSED (http://127.0.0.1:${OPEN_MARKETING_PORT}/api/health)\n`);
+  }
+
+  // 2. Ensure port 3000 is clean before launching Next.js
+  const inUse3000 = await isPortInUse(MARKETING_PORT);
+  if (inUse3000) {
+    const nextHealthy = await checkHealth(MARKETING_PORT, '/');
+    if (!nextHealthy) {
+      console.log(`[Marketing] Port ${MARKETING_PORT} is blocked by a stale process. Freeing port...`);
+      killProcessOnPort(MARKETING_PORT);
+      await new Promise((r) => setTimeout(r, 600));
+    }
   }
 
   // 2. Launch Marketing Next.js application

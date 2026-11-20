@@ -141,11 +141,14 @@ export default function Sidebar() {
         </div>
 
         {/* Open Marketing Module */}
-        <div className="space-y-1.5 pt-3 border-t border-crm-sky/15">
-          <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-crm-sky/70 flex items-center justify-between">
-            <span>Open Marketing</span>
-            <span className="text-[9px] px-1.5 py-0.2 rounded bg-crm-periwinkle/20 text-crm-periwinkle border border-crm-periwinkle/30 font-mono">
-              Module
+        <div className="space-y-1.5 pt-4 border-t border-crm-sky/15">
+          <div className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-[#A5B4FC] flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-[#818CF8]" />
+              <span>Open Marketing</span>
+            </span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#4F46E5] text-white font-mono font-bold tracking-tight">
+              LIVE HUB
             </span>
           </div>
           {openMarketingNavItems.map((item) => {
@@ -157,19 +160,19 @@ export default function Sidebar() {
                 href={item.href}
                 className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-crm-blue text-white border border-crm-periwinkle/40 shadow-sm'
-                    : 'text-crm-sky/85 hover:text-white hover:bg-crm-navySurface'
+                    ? 'bg-[#4F46E5] text-white border border-[#818CF8]/50 shadow-md shadow-indigo-950/40'
+                    : 'text-crm-sky/90 hover:text-white hover:bg-crm-navySurface'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-crm-sky' : 'text-crm-periwinkle/80'}`} />
-                  <span>{item.name}</span>
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-[#818CF8]'}`} />
+                  <span className={isActive ? 'font-semibold' : ''}>{item.name}</span>
                 </div>
                 {item.badge && (
-                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
                     isActive
-                      ? 'bg-crm-navy/60 text-crm-sky border-crm-sky/30'
-                      : 'bg-crm-navySurface text-crm-sky border-crm-sky/20'
+                      ? 'bg-white/20 text-white border-white/30'
+                      : 'bg-[#4F46E5]/20 text-[#A5B4FC] border-[#6366F1]/30'
                   }`}>
                     {item.badge}
                   </span>

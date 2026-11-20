@@ -1,6 +1,7 @@
 'use client';
 
-import { MapPin, Briefcase } from 'lucide-react';
+import Link from 'next/link';
+import { MapPin, Briefcase, Globe2 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
 interface HeaderProps {
@@ -20,8 +21,16 @@ export default function Header({ title, subtitle, action }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Quick status indicators */}
+        {/* Quick status indicators & Open Marketing link */}
         <div className="hidden md:flex items-center gap-3 text-xs text-crm-indigo dark:text-crm-sky">
+          <Link
+            href="/open-marketing"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold text-xs shadow-sm transition-all"
+          >
+            <Globe2 className="w-3.5 h-3.5" />
+            <span>Open Marketing</span>
+          </Link>
+
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-crm-lightGrey/35 dark:bg-crm-navySurface border border-crm-lightGrey dark:border-crm-sky/20">
             <MapPin className="w-3.5 h-3.5 text-crm-blue dark:text-crm-periwinkle" />
             <span className="text-crm-navy dark:text-crm-sky font-medium">Madurai, TN</span>
