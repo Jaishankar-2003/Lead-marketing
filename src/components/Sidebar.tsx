@@ -12,7 +12,8 @@ import {
   Globe2,
   Sparkles,
   Target,
-  Settings
+  Settings,
+  Store
 } from 'lucide-react';
 
 const coreNavItems = [
@@ -45,6 +46,12 @@ const coreNavItems = [
     href: '/outreach',
     icon: Send,
     badge: null,
+  },
+  {
+    name: 'Hardware Vendors',
+    href: '/outreach?tab=vendors',
+    icon: Store,
+    badge: 'New',
   },
 ];
 

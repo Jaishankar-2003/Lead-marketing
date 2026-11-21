@@ -26,10 +26,12 @@ import {
   Loader2,
   ExternalLink,
   RefreshCw,
+  Store,
 } from 'lucide-react';
 import { SUPPORTED_PLACEHOLDERS, TEMPLATE_CATEGORIES } from '@/lib/outreach-utils';
+import VendorManagementHub from '@/components/vendors/VendorManagementHub';
 
-type TabKey = 'overview' | 'templates' | 'campaigns' | 'follow-ups' | 'settings';
+type TabKey = 'overview' | 'templates' | 'campaigns' | 'follow-ups' | 'settings' | 'vendors';
 
 interface AnalyticsData {
   emailsSent: number;
@@ -204,7 +206,7 @@ function OutreachHubContent() {
 
   useEffect(() => {
     const qTab = searchParams.get('tab') as TabKey | null;
-    if (qTab && ['overview', 'templates', 'campaigns', 'follow-ups', 'settings'].includes(qTab)) {
+    if (qTab && ['overview', 'templates', 'campaigns', 'follow-ups', 'settings', 'vendors'].includes(qTab)) {
       setActiveTab(qTab);
     }
   }, [searchParams]);
@@ -368,6 +370,7 @@ function OutreachHubContent() {
     { id: 'campaigns', label: `Bulk Campaigns (${campaigns.length})`, icon: Send },
     { id: 'follow-ups', label: `Follow-Ups (${followUpCounts.pending})`, icon: CalendarClock },
     { id: 'settings', label: 'Gmail SMTP Settings', icon: Settings },
+    { id: 'vendors', label: 'Hardware Vendors & Enquiries', icon: Store },
   ];
 
   return (
@@ -1014,6 +1017,11 @@ SMTP_PASSWORD="your-16-char-google-app-password"`}
               </p>
             </div>
           </div>
+        )}
+
+        {/* TAB 6: VENDOR MANAGEMENT & COMPONENT ENQUIRIES */}
+        {activeTab === 'vendors' && (
+          <VendorManagementHub />
         )}
       </div>
     </div>

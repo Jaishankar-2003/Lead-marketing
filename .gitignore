@@ -36,6 +36,9 @@ yarn-error.log*
 # Local Postgres cluster data
 .postgres/
 
+# Local database backups (may contain business contact data)
+backups/
+
 # Persistent WhatsApp Web browser profile (NEVER commit cookies or session storage)
 .whatsapp-profile/
 

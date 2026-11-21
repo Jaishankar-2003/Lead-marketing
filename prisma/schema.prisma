@@ -256,3 +256,359 @@ model FollowUp {
   @@index([leadId])
   @@index([status, dueAt])
 }
+
+// =====================================================================
+// VENDOR MANAGEMENT MODULE (Additive — fully isolated from Lead / CRM)
+// Vendors are suppliers, NOT customer leads. No relations to Lead tables.
+// =====================================================================
+
+model VendorLocation {
+  id             String           @id @default(cuid())
+  name           String
+  normalizedName String
+  level          String           // "STATE" | "DISTRICT" | "CITY" | "AREA" | "MARKET"
+  country        String           @default("India")
+  aliases        String[]         @default([])
+  isActive       Boolean          @default(true)
+  parentId       String?
+  parent         VendorLocation?  @relation("VendorLocationTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children       VendorLocation[] @relation("VendorLocationTree")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  vendorsAsState    Vendor[] @relation("VendorState")
+  vendorsAsDistrict Vendor[] @relation("VendorDistrict")
+  vendorsAsCity     Vendor[] @relation("VendorCity")
+  vendorsAsArea     Vendor[] @relation("VendorArea")
+
+  @@index([parentId])
+  @@index([level])
+  @@index([normalizedName])
+}
+
+model Vendor {
+  id                     String    @id @default(cuid())
+  vendorCode             String    @unique
+  name                   String
+  normalizedName         String
+  businessType           String?
+  status                 String    @default("VERIFICATION_PENDING")
+  doNotContact           Boolean   @default(false)
+  notes                  String?
+  tags                   String[]  @default([])
+  contactPerson          String?
+  preferredContactMethod String?   // "WHATSAPP" | "EMAIL" | "PHONE"
+
+  country                String    @default("India")
+  stateId                String?
+  state                  VendorLocation? @relation("VendorState", fields: [stateId], references: [id], onDelete: SetNull)
+  districtId             String?
+  district               VendorLocation? @relation("VendorDistrict", fields: [districtId], references: [id], onDelete: SetNull)
+  cityId                 String?
+  city                   VendorLocation? @relation("VendorCity", fields: [cityId], references: [id], onDelete: SetNull)
+  areaId                 String?
+  area                   VendorLocation? @relation("VendorArea", fields: [areaId], references: [id], onDelete: SetNull)
+  fullAddress            String?
+  normalizedAddress      String?
+  pincode                String?
+  originalLocationText   String?
+  locationNeedsReview    Boolean   @default(false)
+
+  productsBrands         String[]  @default([])
+  servicesProvided       String?
+  internalRemarks        String?
+  source                 String?   // "EXCEL_IMPORT" | "MANUAL" ...
+  lastVerifiedAt         DateTime?
+  lastContactedAt        DateTime?
+  customFields           Json?
+
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  contacts      VendorContact[]
+  categories    VendorCategoryAssignment[]
+  importRecords VendorImportRecord[]        @relation("ImportRecordVendor")
+  matchRecords  VendorImportRecord[]        @relation("ImportRecordMatch")
+  recipients    VendorEnquiryRecipient[]
+  quotations    VendorQuotation[]
+  activities    VendorActivityLog[]
+
+  @@index([normalizedName])
+  @@index([status])
+  @@index([stateId])
+  @@index([districtId])
+  @@index([cityId])
+  @@index([areaId])
+  @@index([locationNeedsReview])
+}
+
+model VendorContact {
+  id          String   @id @default(cuid())
+  vendorId    String
+  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  type        String   // "PHONE" | "EMAIL"
+  value       String   // original value exactly as provided
+  normalized  String?  // E.164-like for phones (+91XXXXXXXXXX), lowercase for emails
+  kind        String?  // "MOBILE" | "LANDLINE" | "TOLL_FREE" | "INTERNATIONAL" | "INVALID"
+  label       String?
+  isPrimary   Boolean  @default(false)
+  isWhatsApp  Boolean  @default(false)
+  isValid     Boolean  @default(true)
+  source      String?
+  createdAt   DateTime @default(now())
+
+  @@index([vendorId])
+  @@index([normalized])
+  @@index([type])
+}
+
+model VendorCategory {
+  id          String                     @id @default(cuid())
+  name        String
+  description String?
+  kind        String                     @default("CATEGORY") // "CATEGORY" | "PRODUCT_TYPE"
+  isActive    Boolean                    @default(true)
+  sortOrder   Int                        @default(0)
+  parentId    String?
+  parent      VendorCategory?            @relation("VendorCategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children    VendorCategory[]           @relation("VendorCategoryTree")
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+  vendors     VendorCategoryAssignment[]
+  items       ComponentEnquiryItem[]
+
+  @@index([parentId])
+  @@index([isActive])
+}
+
+model VendorCategoryAssignment {
+  vendorId   String
+  vendor     Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   VendorCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdAt  DateTime       @default(now())
+
+  @@id([vendorId, categoryId])
+  @@index([categoryId])
+}
+
+model VendorImportBatch {
+  id            String               @id @default(cuid())
+  fileName      String
+  fileHash      String
+  fileSize      Int
+  fileType      String
+  sheetNames    String[]             @default([])
+  selectedSheet String?
+  sheetGrids    Json?                // parsed cell grids (merged cells expanded) kept while DRAFT
+  structure     Json?                // detected / user-corrected section mapping
+  mode          String?
+  status        String               @default("DRAFT") // "DRAFT" | "PREVIEWED" | "COMMITTED"
+  totalRecords  Int                  @default(0)
+  importedCount Int                  @default(0)
+  updatedCount  Int                  @default(0)
+  skippedCount  Int                  @default(0)
+  duplicateCount Int                 @default(0)
+  invalidCount  Int                  @default(0)
+  reviewCount   Int                  @default(0)
+  createdAt     DateTime             @default(now())
+  committedAt   DateTime?
+  records       VendorImportRecord[]
+
+  @@index([fileHash])
+  @@index([createdAt])
+}
+
+model VendorImportRecord {
+  id               String            @id @default(cuid())
+  batchId          String
+  batch            VendorImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  sheetName        String?
+  sourceRow        Int?
+  sectionIndex     Int?
+  sectionHeading   String?
+  rawData          Json              // original cell values for this record
+  name             String?
+  phones           String[]          @default([])
+  emails           String[]          @default([])
+  address          String?
+  stateId          String?
+  districtId       String?
+  cityId           String?
+  areaId           String?
+  categoryIds      String[]          @default([])
+  locationNeedsReview Boolean        @default(false)
+  fingerprint      String
+  validationStatus String            @default("VALID") // "VALID" | "WARNING" | "INVALID"
+  issues           String[]          @default([])
+  matchType        String?           // "EXACT" | "HIGH" | "POTENTIAL" | "CONFLICT"
+  matchReason      String?
+  matchVendorId    String?
+  matchVendor      Vendor?           @relation("ImportRecordMatch", fields: [matchVendorId], references: [id], onDelete: SetNull)
+  action           String            @default("PREVIEW") // PREVIEW | IMPORTED | UPDATED | SKIPPED | REVIEW | MERGED | SEPARATE | CONTACT_ADDED | INVALID
+  resolutionNote   String?
+  vendorId         String?
+  vendor           Vendor?           @relation("ImportRecordVendor", fields: [vendorId], references: [id], onDelete: SetNull)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([batchId, action])
+  @@index([fingerprint])
+  @@index([action])
+  @@index([matchVendorId])
+}
+
+model ComponentEnquiry {
+  id                   String                   @id @default(cuid())
+  requestCode          String                   @unique
+  customerName         String?
+  customerPhone        String?
+  shareCustomerContact Boolean                  @default(false)
+  customerLocation     String?
+  stateId              String?
+  districtId           String?
+  cityId               String?
+  areaId               String?
+  locationLabel        String?
+  requestedAt          DateTime                 @default(now())
+  priority             String                   @default("NORMAL")   // LOW | NORMAL | HIGH | URGENT
+  urgency              String?
+  internalNotes        String?
+  preferredContact     String?                  // WHATSAPP | EMAIL
+  deliveryPreference   String?                  // PICKUP | DELIVERY | EITHER
+  additionalInstructions String?
+  nearbyLocationIds    String[]                 @default([])
+  status               String                   @default("OPEN") // OPEN | IN_PROGRESS | CLOSED | CANCELLED
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  items                ComponentEnquiryItem[]
+  recipients           VendorEnquiryRecipient[]
+  quotations           VendorQuotation[]
+  activities           VendorActivityLog[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ComponentEnquiryItem {
+  id             String           @id @default(cuid())
+  enquiryId      String
+  enquiry        ComponentEnquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  categoryId     String?
+  category       VendorCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  componentName  String
+  brand          String?
+  model          String?
+  specifications String?
+  quantity       Int              @default(1)
+  budget         String?
+  onlinePrice    Float?           // Benchmark online market price (Amazon, MDComputers, etc.)
+  requirements   String?
+  quotations     VendorQuotation[]
+
+  @@index([enquiryId])
+}
+
+model VendorEnquiryRecipient {
+  id               String           @id @default(cuid())
+  enquiryId        String
+  enquiry          ComponentEnquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  vendorId         String
+  vendor           Vendor           @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  status           String           @default("READY_TO_CONTACT")
+  channel          String?          // WHATSAPP | EMAIL | PHONE
+  contactUsed      String?
+  matchReasons     String[]         @default([])
+  renderedSubject  String?
+  renderedMessage  String?
+  isPreferred      Boolean          @default(false)
+  attempts         Int              @default(0)
+  errorDetails     String?
+  chatOpenedAt     DateTime?
+  sentConfirmedAt  DateTime?
+  emailSentAt      DateTime?
+  respondedAt      DateTime?
+  followUpAt       DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  quotations       VendorQuotation[]
+
+  @@unique([enquiryId, vendorId])
+  @@index([vendorId])
+  @@index([status])
+}
+
+model VendorQuotation {
+  id             String                 @id @default(cuid())
+  enquiryId      String
+  enquiry        ComponentEnquiry       @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  recipientId    String
+  recipient      VendorEnquiryRecipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  vendorId       String
+  vendor         Vendor                 @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  itemId         String?
+  item           ComponentEnquiryItem?  @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  availability   String?                // AVAILABLE | NOT_AVAILABLE | OUT_OF_STOCK | PARTIAL
+  availableQty   Int?
+  brand          String?
+  model          String?
+  unitPrice      Float?
+  gstPercent     Float?
+  gstAmount      Float?
+  deliveryCharge Float?
+  otherCharges   Float?
+  totalPrice     Float?
+  warranty       String?
+  deliveryTime   String?
+  quoteValidity  String?
+  paymentTerms   String?
+  remarks        String?
+  responseDate   DateTime?
+  followUpDate   DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([enquiryId])
+  @@index([recipientId])
+  @@index([vendorId])
+}
+
+model VendorActivityLog {
+  id          String            @id @default(cuid())
+  vendorId    String?
+  vendor      Vendor?           @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  enquiryId   String?
+  enquiry     ComponentEnquiry? @relation(fields: [enquiryId], references: [id], onDelete: SetNull)
+  recipientId String?
+  type        String            // IMPORT | MERGE | UPDATE | WHATSAPP | EMAIL | STATUS_CHANGE | QUOTATION | NOTE
+  channel     String?
+  status      String?
+  content     String
+  metadata    Json?
+  createdAt   DateTime          @default(now())
+
+  @@index([vendorId])
+  @@index([enquiryId])
+  @@index([createdAt])
+}
+
+model VendorMessageTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  channel     String   // "WHATSAPP" | "EMAIL"
+  enquiryType String?
+  subject     String?
+  body        String
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([channel, isActive])
+}
+
+model VendorSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
